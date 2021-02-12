@@ -1,0 +1,55 @@
+- name: "configuring httpd on docker"
+  hosts: web
+  tasks:
+  - name: "Yum configuration of Docker"
+    yum_repository:
+      name: docker
+      description: "docker repository"
+      baseurl: https://download.docker.com/linux/centos/7/x86_64/stable/
+      gpgcheck: no
+
+  - name: "Installing docker"
+    command: "yum install docker-ce --nobest -y"
+
+  - name: "Docker service start and enable"
+    service:
+      name: docker
+      state: started
+      enabled: yes
+
+  - pip:
+      name: "docker"
+      state: latest
+
+  - name: "Pulling httpd image from docker hub"
+    docker_image:
+      name: httpd
+      source: pull
+      state: present
+
+  - name: "Creation of a directory"
+    file:
+      path: "/var/www/html"
+      state: directory
+
+  - name: "copping html file"
+    copy:
+      src: "index.html"
+      dest: "/var/www/html/index.html"
+
+  - name: "firewall for port 80"
+    firewalld:
+      port: "80/tcp"
+      state: enabled
+      permanent: yes
+      immediate: yes
+
+  - name: "Launching docker container"
+    docker_container:
+      name: webserver
+      image: httpd
+      state: started
+      ports: "8081:80"
+      volumes: /var/www/html/index.html:/usr/local/apache2/htdocs/index.html
+      detach: true
+
